@@ -16,7 +16,6 @@ import {
 } from "../utils/formValidator";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../api/api";
-import { token } from "../utils/auth";
 
 interface SignInFormProps {
   open: boolean;
@@ -106,9 +105,7 @@ const SignInForm: React.FC<SignInFormProps> = ({
     try {
       const response = await loginUser(formData); // Call the API function
       console.log("User logged in:", response);
-      if (token) {
-        navigate("/tasks");
-      }
+      navigate("/tasks");
       onClose();
     } catch (error: any) {
       if (

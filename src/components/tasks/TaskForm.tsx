@@ -83,10 +83,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ open, onClose, onSubmit }) => {
 
   const handleSubmit = () => {
     const newTask: TaskData = {
-      id: Math.random().toString(),
       ...formData,
-      priority: priority, // Include the priority in the new task
+      priority: priority,
       completed: false,
+      status: "pending"
     };
     onSubmit(newTask);
     onClose();

@@ -3,83 +3,111 @@ import TaskForm from "../components/tasks/TaskForm";
 import TaskList from "../components/tasks/TaskList";
 import { TaskData } from "../utils/types";
 import Button from "@mui/material/Button";
-import CustomPagignation from "../components/CustomPagignation";
-import { FormControl, Select, MenuItem } from "@mui/material";
+import CustomPagination from "../components/CustomPagignation";
+import { FormControl, Select, MenuItem, InputLabel } from "@mui/material";
 import SearchInput from "../components/SearchInput";
 import { SelectChangeEvent } from "@mui/material";
+import { createTasks } from "../api/api";
+import useFetchTasks from "../utils/useFetchTasks";
+import CreateSuccessDialog from "../components/CreateSuccessDialog";
 
 const Tasks: React.FC = () => {
-  const [tasks, setTasks] = useState<TaskData[]>([]);
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const tasksPerPage = 4;
-  const [sortBy, setSortBy] = useState(""); // "title", "dueDate", "priority", etc.
-  const [searchQuery, setSearchQuery] = useState(""); // Search term
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  const handleCreateTask = (newTask: TaskData) => {
-    setTasks([...tasks, newTask]);
-  };
+  const pageSize = 10;
+  const [page, setpage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const handleEditTask = (editedTask: TaskData) => {
-    const updatedTasks = tasks.map((task) =>
-      task.id === editedTask.id ? { ...task, ...editedTask } : task
-    );
-    setTasks(updatedTasks);
-  };
+  const [sortBy, setSortBy] = useState(""); // Default sorting by dueDate
+  const [sortOrder, setSortOrder] = useState("asc"); // Default sorting order
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+  const [keyword, setKeyword] = useState(""); // Search term
 
-  const handleDeleteTask = (taskId: string) => {
-    const updatedTasks = tasks.filter((task) => task.id !== taskId);
-    setTasks(updatedTasks);
-  };
-
-  const handleToggleComplete = (taskId: string) => {
-    const updatedTasks = tasks.map((task) =>
-      task.id === taskId ? { ...task, completed: !task.completed } : task
-    );
-    setTasks(updatedTasks);
-  };
-
-  // Filter tasks based on search query
-  const filteredTasks = tasks.filter((task) =>
-    task.title.toLowerCase().includes(searchQuery.toLowerCase())
+  // Call useFetchTasks to get tasks and total pages
+  const [tasks, setTasks] = useFetchTasks(
+    page,
+    pageSize,
+    sortBy,
+    sortOrder,
+    priorityFilter,
+    statusFilter,
+    keyword,
+    setTotalPages
   );
 
-  const handleSort = (event: SelectChangeEvent) => {
-    setSortBy(event.target.value as string);
+  const handlePageChange = (newPage: number) => {
+    setpage(newPage);
   };
 
-  // Sort tasks based on selected criteria
-  const sortedTasks = filteredTasks.slice().sort((a, b) => {
-    if (sortBy === "dueDate") {
-      const dateA = new Date(a.dueDate).getTime();
-      const dateB = new Date(b.dueDate).getTime();
-      return dateA - dateB;
-    } else if (sortBy === "priority") {
-      // Assign a priority score for each priority level
-      const priorityScores = {
-        low: 1,
-        medium: 2,
-        high: 3,
-      };
-      return priorityScores[a.priority] - priorityScores[b.priority];
-    } else {
-      // If no sorting criteria selected, maintain the existing order
-      return 0;
+  const handleCreateTask = async (newTask: TaskData) => {
+    try {
+      const response = await createTasks(newTask);
+      console.log("Created task data:", response);
+      // Open the delete success dialog
+      setIsCreateDialogOpen(true);
+      // Close the dialog after 3 seconds
+      setTimeout(() => {
+        setIsCreateDialogOpen(false);
+      }, 3000);
+
+      // Update the tasks array with the newly created task
+      setTasks((prevTasks) => [response.data.task, ...prevTasks]);
+    } catch (error: any) {
+      console.error("Error creating task:", error.message);
     }
-  });
+  };
 
-  // Pagination
-  const indexOfLastTask = currentPage * tasksPerPage;
-  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
-  const currentTasks = sortedTasks.slice(indexOfFirstTask, indexOfLastTask);
+  const handleSort = (event: SelectChangeEvent) => {
+    const selectedSortBy = event.target.value as string;
 
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage);
+    // Update the sortBy state and reset filters
+    setSortBy(selectedSortBy);
+    setStatusFilter(null);
+    setPriorityFilter(null);
+    setpage(1); // Reset to the first page when changing sorting criteria
+  };
+
+  const handleSortOrderChange = () => {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+  };
+
+  const handleStatusFilterChange = (event: SelectChangeEvent) => {
+    const selectedStatus = event.target.value as string;
+    setStatusFilter(selectedStatus);
+    setpage(1); // Reset to the first page when changing filters
+  };
+
+  const handlePriorityFilterChange = (event: SelectChangeEvent) => {
+    const selectedPriority = event.target.value as string;
+    setPriorityFilter(selectedPriority);
+    setpage(1); // Reset to the first page when changing filters
+  };
+
+  const handleUpdateTask = (updatedTask: TaskData) => {
+    setTasks((prevTasks) => {
+      return prevTasks.map((task) =>
+        task.taskID === updatedTask.taskID ? updatedTask : task
+      );
+    });
+  };
+
+  const handleDeleteTask = (taskID: number) => {
+    // Filter out the deleted task from the tasks array
+    setTasks((prevTasks) => prevTasks.filter((task) => task.taskID !== taskID));
+  };
+
+  const handleSearchChange = (newKeyword: string) => {
+    setKeyword(newKeyword); // Change the state updater function name
+
+    // Reset page to 1 when changing keyword
+    setpage(1);
   };
 
   return (
-    <div className="bg-gray-200 h-auto w-screen">
-      <div className="sticky top-0 bg-white p-4 shadow-md">
+    <div className="w-screen">
+      <div className="sticky top-0 left-0 right-0 bg-white p-4 shadow-lg">
         <h1 className="text-xl font-bold">Your personal Task tracker</h1>
         <Button
           variant="contained"
@@ -94,39 +122,108 @@ const Tasks: React.FC = () => {
         >
           Create Task
         </Button>
+
+        <div
+          className="py-4"
+          style={{ display: "flex", gap: "1rem", width: "100%" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+            <FormControl variant="outlined" fullWidth>
+              <InputLabel htmlFor="sort-by-select" sx={{ color: "black" }}>
+                Sort by
+              </InputLabel>
+              <Select
+                value={sortBy}
+                onChange={handleSort}
+                labelId="sort-by-select"
+                label="Sort by"
+              >
+                <MenuItem value="">None</MenuItem>
+                <MenuItem value="dueDate">Due Date</MenuItem>
+                <MenuItem value="priority">Priority</MenuItem>
+              </Select>
+            </FormControl>
+
+            <div
+              onClick={handleSortOrderChange}
+              style={{ cursor: "pointer", marginLeft: "0.5rem" }}
+            >
+              {sortOrder === "asc" ? (
+                <span className="text-2xl font-bold">&uarr;</span>
+              ) : (
+                <span className="text-2xl font-semibold">&darr;</span>
+              )}
+            </div>
+          </div>
+
+          {/* Custom SearchInput */}
+          <SearchInput
+            searchQuery={keyword}
+            onSearchChange={handleSearchChange}
+          />
+
+          <FormControl variant="outlined" fullWidth>
+            <InputLabel htmlFor="status-filter-select" sx={{ color: "black" }}>
+              Status
+            </InputLabel>
+            <Select
+              value={statusFilter || ""}
+              onChange={handleStatusFilterChange}
+              labelId="status-filter-select"
+              label="Status"
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="pending">Pending</MenuItem>
+              <MenuItem value="completed">Completed</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl variant="outlined" fullWidth>
+            <InputLabel
+              htmlFor="priority-filter-select"
+              sx={{ color: "black" }}
+            >
+              Priority
+            </InputLabel>
+            <Select
+              value={priorityFilter || ""}
+              onChange={handlePriorityFilterChange}
+              labelId="priority-filter-select"
+              label="Priority"
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="low">Low</MenuItem>
+              <MenuItem value="medium">Medium</MenuItem>
+              <MenuItem value="high">High</MenuItem>
+            </Select>
+          </FormControl>
+        </div>
       </div>
+
       <TaskForm
         open={isTaskFormOpen}
         onClose={() => setIsTaskFormOpen(false)}
         onSubmit={handleCreateTask}
       />
-
-      <div className="flex justify-between p-4">
-        {/* Sorting dropdown */}
-        <FormControl variant="outlined" size="small">
-          <Select value={sortBy} onChange={handleSort} label="Sort by">
-            <MenuItem value="">None</MenuItem>
-            <MenuItem value="dueDate">Due Date</MenuItem>
-            <MenuItem value="priority">Priority</MenuItem>
-          </Select>
-        </FormControl>
-        {/* Custom SearchInput */}
-        <SearchInput
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+      <div className=" bg-gray-200">
+        <TaskList
+          tasks={tasks}
+          onUpdateTask={handleUpdateTask}
+          onDeleteTask={handleDeleteTask}
         />
       </div>
-
-      <TaskList
-        tasks={currentTasks}
-        onEdit={handleEditTask}
-        onDelete={handleDeleteTask}
-        onToggleComplete={handleToggleComplete}
-      />
-      <CustomPagignation
-        currentPage={currentPage}
-        totalPages={Math.ceil(sortedTasks.length / tasksPerPage)}
-        onPageChange={handlePageChange}
+      <div className="sticky left-0 right-0 bottom-0">
+        <CustomPagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      </div>
+      {/* Edit Success Dialog */}
+      <CreateSuccessDialog
+        open={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        message={"Task Created Successfully"}
       />
     </div>
   );

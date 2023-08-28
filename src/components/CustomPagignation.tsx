@@ -21,7 +21,7 @@ const CustomPagination: React.FC<CustomPaginationProps> = ({
   };
 
   return (
-    <div className="w-full items-center bg-white">
+    <div className="w-full items-center py-4 bg-white">
       <Stack spacing={2} direction="row" justifyContent="center" mt={2}>
         <Pagination
           count={totalPages}

@@ -1,11 +1,12 @@
 export interface TaskData {
-  id: string;
+  taskID?: number; // Corrected type
   title: string;
   description: string;
+  priority: "low" | "medium" | "high"; // Enum type
   subtasks: Subtask[];
-  priority: "low" | "medium" | "high"; // Use constrained values here
-  dueDate: string;
+  dueDate: string; // Corrected type
   completed: boolean;
+  status: "pending" | "completed"; // Enum type
 }
 
 export interface Subtask {

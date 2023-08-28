@@ -1,28 +1,48 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { TaskData } from "../../utils/types";
 import CircularProgress from "../CircularProgress";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import TaskEditDialog from "./TaskEditDialog";
+import { deleteTask, updateTask } from "../../api/api";
+import DeleteSuccessDialog from "../DeleteSuccessDialog";
+import EditSuccessDialog from "../EditDialogSuccess";
 
 interface TaskProps {
   task: TaskData;
-  onEdit: (task: TaskData) => void;
-  onDelete: (taskId: string) => void;
-  onToggleComplete: (taskId: string) => void;
+  onUpdateTask: (updatedTask: TaskData) => void;
+  onDeleteTask: (taskID: number) => void;
 }
 
-const Task: React.FC<TaskProps> = ({
-  task,
-  onEdit,
-  onDelete,
-  onToggleComplete,
-}) => {
+const Task: React.FC<TaskProps> = ({ task, onUpdateTask, onDeleteTask }) => {
   const [isDialogOpen, setDialogOpen] = useState(false);
-  const [subtaskCompletionStatus, setSubtaskCompletionStatus] = useState<
-    boolean[]
-  >(task.subtasks.map((subtask) => subtask.completed));
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const handleCompleteTask = async () => {
+    if (task.taskID !== undefined) {
+      // Create a new task object with completed set to true and status set to pending
+      const newTask: TaskData = {
+        ...task,
+        completed: true,
+        status: "completed",
+        subtasks: task.subtasks.map((subtask) => ({
+          ...subtask,
+          completed: true,
+        })),
+      };
+
+      try {
+        // Call the updateTasks function to update the task
+        const response = await updateTask(newTask);
+        console.log("Task marked as completed:", newTask);
+        onUpdateTask(response.data);
+      } catch (error: any) {
+        console.error("Error completing task:", error.message);
+      }
+    }
+  };
 
   const handleOpenDialog = () => {
     setDialogOpen(true);
@@ -32,8 +52,42 @@ const Task: React.FC<TaskProps> = ({
     setDialogOpen(false);
   };
 
-  const handleSaveEdit = (editedTask: TaskData) => {
-    onEdit(editedTask);
+  const handleSaveEdit = async (editedTask: TaskData) => {
+    // Check if there are any subtasks with completed set to false
+    const hasIncompleteSubtask = editedTask.subtasks.some(
+      (subtask) => !subtask.completed
+    );
+
+    // Determine the new completed and status values for the task
+    let newCompleted = false;
+    let newStatus: "pending" | "completed" = "pending";
+
+    if (!hasIncompleteSubtask) {
+      newCompleted = true;
+      newStatus = "completed";
+    }
+
+    // Create a new task object with updated completed and status values
+    const updatedTask: TaskData = {
+      ...editedTask,
+      completed: newCompleted,
+      status: newStatus,
+    };
+
+    try {
+      const response = await updateTask(updatedTask);
+      console.log(response);
+
+      // Open the delete success dialog
+      setIsEditDialogOpen(true);
+      // Close the dialog after 3 seconds
+      setTimeout(() => {
+        setIsEditDialogOpen(false);
+      }, 3000);
+      onUpdateTask(response.data);
+    } catch (error: any) {
+      console.log(error.message);
+    }
   };
 
   const completedSubtasks = task.subtasks.filter(
@@ -46,40 +100,31 @@ const Task: React.FC<TaskProps> = ({
     ? Math.round((completedSubtasks / totalSubtasks) * 100)
     : 0;
 
-  useEffect(() => {
-    console.log("1st useEffect of Task component", task);
-    if (task.completed) {
-      setSubtaskCompletionStatus((prevStatus) => prevStatus.map(() => true));
+  const onDelete = async () => {
+    if (task.taskID !== undefined) {
+      try {
+        // Simulating a successful delete response
+        const response = await deleteTask(task.taskID);
+        console.log(response);
 
-      const updatedSubtasks = task.subtasks.map((subtask) => ({
-        ...subtask,
-        completed: true,
-      }));
-      onEdit({
-        ...task,
-        subtasks: updatedSubtasks,
-      });
+        // Open the delete success dialog
+        setIsDeleteDialogOpen(true);
+        // Close the dialog after 3 seconds
+        setTimeout(() => {
+          setIsDeleteDialogOpen(false);
+        }, 3000);
+        onDeleteTask(task.taskID);
+      } catch (error: any) {
+        console.error(error.message);
+      }
     }
-  }, [task.completed]);
-
-  useEffect(() => {
-    console.log(
-      "2nd useEffect of Task component",
-      task,
-      progressPercentage,
-      task.completed,
-      task.id
-    );
-    if (progressPercentage === 100 && !task.completed) {
-      setSubtaskCompletionStatus((prevStatus) => prevStatus.map(() => true));
-
-      onToggleComplete(task.id);
-    }
-  }, [progressPercentage, task.completed, task.id, onToggleComplete]);
+  };
 
   return (
-    <div className="border bg-white p-4 m-4 shadow-md rounded-xl">
-      <h3 className="text-center mb-4">{task.title}</h3>
+    <div className="border bg-white p-4 m-4 shadow-xl rounded-xl">
+      <h3 className="text-center mb-4 w-full bg-red-400 rounded-md text-white text-lg">
+        {task.title}
+      </h3>
 
       <div className="flex flex-col">
         <div className="flex justify-between mb-2">
@@ -88,7 +133,11 @@ const Task: React.FC<TaskProps> = ({
         </div>
         <div className="flex justify-between mb-2">
           <span className="font-bold mr-1">Due Date:</span>
-          <span>{task.dueDate}</span>
+          <span>
+            {task.dueDate
+              ? new Date(task.dueDate).toLocaleDateString("en-GB")
+              : "No due date"}
+          </span>
         </div>
         <div className="flex justify-between mb-2">
           <span className="font-bold mr-1">Priority:</span>
@@ -98,26 +147,32 @@ const Task: React.FC<TaskProps> = ({
           <span className="font-bold mr-1">Status:</span>
           <span
             className={`${
-              progressPercentage === 100 ? "text-green-500" : "text-orange-500"
+              task.status === "completed" ? "text-green-500" : "text-orange-500"
             }`}
           >
-            {progressPercentage === 100 ? "Completed" : "Pending"}
+            {task.status}
           </span>
         </div>
         <div className="flex justify-between mb-2">
           <span className="font-bold mr-1">SubTasks:</span>
-          <div className="flex flex-wrap">
-            {task.subtasks.map((subtask, index) => (
-              <span
-                key={index}
-                className={`${
-                  subtask.completed ? "bg-green-200" : "bg-yellow-100"
-                } rounded p-1 m-1 texts-sm`} // Added margin between subtasks
-              >
-                {subtask.title}
-              </span>
-            ))}
-          </div>
+          {task.subtasks.length > 0 ? (
+            <div className="flex flex-wrap">
+              {task.subtasks.map((subtask, index) => (
+                <span
+                  key={index}
+                  className={`${
+                    subtask.completed ? "bg-green-200" : "bg-yellow-100"
+                  } rounded p-1 m-1 text-sm`}
+                >
+                  {subtask.title}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className=" text-gray-400 text-base font-medium">
+              No subtasks are there
+            </span>
+          )}
         </div>
       </div>
 
@@ -127,18 +182,20 @@ const Task: React.FC<TaskProps> = ({
 
       <div className="flex justify-center mt-4">
         <EditIcon
-          className="cursor-pointer text-yellow-400 mr-4"
+          className="cursor-pointer text-yellow-500 mr-4"
           onClick={handleOpenDialog}
         />
         <DeleteIcon
-          className="cursor-pointer text-red-400 mr-4"
-          onClick={() => onDelete(task.id)}
+          className="cursor-pointer text-red-500 mr-4"
+          onClick={onDelete}
         />
-        {!task.completed && (
+        {task.status !== "completed" ? (
           <CheckIcon
-            className="cursor-pointer text-green-400"
-            onClick={() => onToggleComplete(task.id)}
+            className=" cursor-pointer text-green-500"
+            onClick={handleCompleteTask}
           />
+        ) : (
+          <></>
         )}
       </div>
       <TaskEditDialog
@@ -146,6 +203,19 @@ const Task: React.FC<TaskProps> = ({
         task={task}
         onClose={handleCloseDialog}
         onSave={handleSaveEdit}
+      />
+
+      {/* Delete Success Dialog */}
+      <DeleteSuccessDialog
+        open={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        message={"Task Deleted Successfully"}
+      />
+      {/* Edit Success Dialog */}
+      <EditSuccessDialog
+        open={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        message={"Task Edited Successfully"}
       />
     </div>
   );

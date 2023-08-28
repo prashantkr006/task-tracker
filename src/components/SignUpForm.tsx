@@ -111,7 +111,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       return; // Don't close the form if there are errors or empty fields
     }
 
-    // Perform sign-in logic
+    // Perform sign-Up logic
     // ...
     console.log(formData);
 

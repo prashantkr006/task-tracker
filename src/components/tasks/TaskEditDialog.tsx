@@ -116,27 +116,29 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({
         />
         <div>
           {editedTask.subtasks.map((subtask, index) => (
-            <div key={index} className="subtask">
+            <div key={index} className="subtask grid grid-cols-2 items-center">
               <FormControlLabel
                 control={
                   <Checkbox
                     checked={subtask.completed}
                     onChange={handleSubtaskChange(index)}
+                    color="success"
                   />
                 }
                 label={subtask.title}
-                disabled={subtask.completed}
               />
-              {!subtask.completed && (
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  onClick={handleDeleteSubtask(index)}
-                >
-                  Delete
-                </Button>
-              )}
+              <div>
+                {!subtask.completed && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    onClick={handleDeleteSubtask(index)}
+                  >
+                    Delete
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
           <div className="subtask">

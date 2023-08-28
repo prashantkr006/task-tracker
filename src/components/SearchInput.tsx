@@ -11,7 +11,6 @@ const SearchInput: React.FC<SearchInputProps> = ({ searchQuery, onSearchChange }
     <TextField
       label="Search"
       variant="outlined"
-      size="small"
       value={searchQuery}
       onChange={(e) => onSearchChange(e.target.value)}
       fullWidth
