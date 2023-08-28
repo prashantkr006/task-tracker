@@ -15,7 +15,9 @@ import {
   validatePassword,
   validateForm,
 } from "../utils/formValidator";
-import { Navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { registerUser } from "../api/api";
+import UserRegisteredSuccess from "./userRegisteredSuccess";
 
 interface SignUpFormProps {
   open: boolean;
@@ -28,17 +30,20 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   onClose,
   onSignInClick,
 }) => {
+  const navigate = useNavigate();
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
+
   // Reset formData state when the form is closed
   useEffect(() => {
     if (!open) {
       setFormData({
-        fullName: "",
+        name: "",
         email: "",
         username: "",
         password: "",
       });
       setFormErrors({
-        fullName: "",
+        name: "",
         email: "",
         username: "",
         password: "",
@@ -46,17 +51,15 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     }
   }, [open]);
 
-  const [formSubmitted, setFormSubmitted] = useState(false);
-
   const [formData, setFormData] = useState({
-    fullName: "",
+    name: "",
     email: "",
     username: "",
     password: "",
   });
 
   const [formErrors, setFormErrors] = useState({
-    fullName: "",
+    name: "",
     email: "",
     username: "",
     password: "",
@@ -93,8 +96,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     onSignInClick();
   };
 
-  const handleSignUp = () => {
-    setFormSubmitted(true); // Indicate that the form has been submitted
+  const handleSignUp = async () => {
     const newFormErrors = validateForm(formData);
 
     // Update the form errors state
@@ -111,83 +113,113 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       return; // Don't close the form if there are errors or empty fields
     }
 
-    // Perform sign-Up logic
-    // ...
-    console.log(formData);
+    try {
+      const response = await registerUser(formData); // Call the API function
+      console.log("User registered:", response);
+      onClose();
+      // Show the success dialog
+      setIsSuccessDialogOpen(true);
+
+      // Close the success dialog after 3 seconds
+      setTimeout(() => {
+        setIsSuccessDialogOpen(false);
+      }, 3000);
+      navigate("/");
+    } catch (error: any) {
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
+        // Display the backend error message to the user
+        setFormErrors((prevErrors) => ({
+          ...prevErrors,
+          backend: error.response.data.message,
+        }));
+      } else {
+        console.error("An error occurred:", error);
+      }
+    }
 
     // Close the form only on successful sign-in
     onClose();
   };
 
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle className="bg-primary text-white">Sign Up</DialogTitle>
-      <DialogContent>
-        <DialogContentText>
-          Please fill in the required information to sign up.
-        </DialogContentText>
-        <TextField
-          label="Full name"
-          type="fullName"
-          margin="normal"
-          fullWidth
-          onChange={(e) => handleFieldChange("fullName", e.target.value)}
-          error={!!formErrors.fullName}
-          helperText={formErrors.fullName}
-        />
-        <TextField
-          label="Email"
-          type="email"
-          margin="normal"
-          fullWidth
-          onChange={(e) => handleFieldChange("email", e.target.value)}
-          error={!!formErrors.email}
-          helperText={formErrors.email}
-        />
-        <TextField
-          label="Username"
-          margin="normal"
-          fullWidth
-          onChange={(e) => handleFieldChange("username", e.target.value)}
-          error={!!formErrors.username}
-          helperText={formErrors.username}
-        />
-        <TextField
-          label="Password"
-          type="password"
-          margin="normal"
-          fullWidth
-          onChange={(e) => handleFieldChange("password", e.target.value)}
-          error={!!formErrors.password}
-          helperText={formErrors.password}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button
-          onClick={onClose}
-          color="secondary"
-          className="mr-2 border-secondary hover:bg-white hover:text-secondary transition-colors"
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSignUp}
-          color="primary"
-          className="hover:bg-white hover:text-primary border border-primary transition-colors"
-        >
-          Sign Up
-        </Button>
-      </DialogActions>
-      <div className="text-center my-2">
-        Already have an account?{" "}
-        <span
-          className="text-blue-500 cursor-pointer hover:underline"
-          onClick={handleAlreadyAccount}
-        >
-          Sign In
-        </span>
-      </div>
-    </Dialog>
+    <div>
+      <Dialog open={open} onClose={onClose}>
+        <DialogTitle className="bg-primary text-white">Sign Up</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Please fill in the required information to sign up.
+          </DialogContentText>
+          <TextField
+            label="Full name"
+            type="name"
+            margin="normal"
+            fullWidth
+            onChange={(e) => handleFieldChange("name", e.target.value)}
+            error={!!formErrors.name}
+            helperText={formErrors.name}
+          />
+          <TextField
+            label="Email"
+            type="email"
+            margin="normal"
+            fullWidth
+            onChange={(e) => handleFieldChange("email", e.target.value)}
+            error={!!formErrors.email}
+            helperText={formErrors.email}
+          />
+          <TextField
+            label="Username"
+            margin="normal"
+            fullWidth
+            onChange={(e) => handleFieldChange("username", e.target.value)}
+            error={!!formErrors.username}
+            helperText={formErrors.username}
+          />
+          <TextField
+            label="Password"
+            type="password"
+            margin="normal"
+            fullWidth
+            onChange={(e) => handleFieldChange("password", e.target.value)}
+            error={!!formErrors.password}
+            helperText={formErrors.password}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={onClose}
+            color="secondary"
+            className="mr-2 border-secondary hover:bg-white hover:text-secondary transition-colors"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSignUp}
+            color="primary"
+            className="hover:bg-white hover:text-primary border border-primary transition-colors"
+          >
+            Sign Up
+          </Button>
+        </DialogActions>
+        <div className="text-center my-2">
+          Already have an account?{" "}
+          <span
+            className="text-blue-500 cursor-pointer hover:underline"
+            onClick={handleAlreadyAccount}
+          >
+            Sign In
+          </span>
+        </div>
+      </Dialog>
+      <UserRegisteredSuccess
+        open={isSuccessDialogOpen}
+        onClose={() => setIsSuccessDialogOpen(false)}
+      />
+    </div>
   );
 };
 

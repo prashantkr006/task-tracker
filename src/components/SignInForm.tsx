@@ -44,7 +44,6 @@ const SignInForm: React.FC<SignInFormProps> = ({
     }
   }, [open]);
 
-  const [formSubmitted, setFormSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -85,7 +84,6 @@ const SignInForm: React.FC<SignInFormProps> = ({
   };
 
   const handleSignIn = async () => {
-    setFormSubmitted(true); // Indicate that the form has been submitted
     const newFormErrors = validateForm(formData);
 
     // Update the form errors state
