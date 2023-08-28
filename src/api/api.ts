@@ -9,7 +9,7 @@ import {
 } from "./endpoints"; // Import the endpoint constants
 import { TaskData } from "../utils/types";
 
-const baseURL = "http://localhost:4000";
+const baseURL = "https://task-tracker-seerver.onrender.com";
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL,
