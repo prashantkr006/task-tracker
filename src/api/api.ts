@@ -10,7 +10,7 @@ import {
 } from "./endpoints"; // Import the endpoint constants
 import { TaskData } from "../utils/types";
 
-const baseURL = process.env.BASE_URL || "http://localhost:4000";
+const baseURL = process.env.BASE_URL;
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL,
