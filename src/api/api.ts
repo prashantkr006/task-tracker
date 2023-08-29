@@ -6,10 +6,11 @@ import {
   CREATE_TASKS,
   UPDATE_TASKS,
   DELETE_TASKS,
+  SIGNOUT,
 } from "./endpoints"; // Import the endpoint constants
 import { TaskData } from "../utils/types";
 
-const baseURL = "https://task-tracker-seerver.onrender.com";
+const baseURL = process.env.BASE_URL || "http://localhost:4000";
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL,
@@ -56,3 +57,6 @@ export const updateTask = (editedTask: TaskData) =>
 //tasks/delete
 export const deleteTask = (taskID: number) =>
   axiosInstance.delete(DELETE_TASKS + `/${taskID}`);
+
+//signout
+export const signoutUser = () => axiosInstance.get(SIGNOUT);

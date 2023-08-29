@@ -7,11 +7,13 @@ import CustomPagination from "../components/CustomPagignation";
 import { FormControl, Select, MenuItem, InputLabel } from "@mui/material";
 import SearchInput from "../components/SearchInput";
 import { SelectChangeEvent } from "@mui/material";
-import { createTasks } from "../api/api";
+import { createTasks, signoutUser } from "../api/api";
 import useFetchTasks from "../utils/useFetchTasks";
 import CreateSuccessDialog from "../components/CreateSuccessDialog";
+import { useNavigate } from "react-router-dom";
 
 const Tasks: React.FC = () => {
+  const navigate = useNavigate();
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
@@ -24,6 +26,18 @@ const Tasks: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
   const [keyword, setKeyword] = useState(""); // Search term
+
+  //handle signout
+  const handleSignOut = async () => {
+    try {
+      // Perform sign-out actions (clear token, etc.)
+      await signoutUser();
+      // Navigate to the home page ("/")
+      navigate("/");
+    } catch (error: any) {
+      console.error(error.message);
+    }
+  };
 
   // Call useFetchTasks to get tasks and total pages
   const [tasks, setTasks] = useFetchTasks(
@@ -109,20 +123,35 @@ const Tasks: React.FC = () => {
     <div className="w-screen">
       <div className="sticky top-0 left-0 right-0 bg-white p-4 shadow-lg">
         <h1 className="text-xl font-bold">Your personal Task tracker</h1>
-        <Button
-          variant="contained"
-          sx={{
-            backgroundColor: "black",
-            "&:hover": {
-              backgroundColor: "grey",
-            },
-          }}
-          onClick={() => setIsTaskFormOpen(true)}
-          className="mt-2"
-        >
-          Create Task
-        </Button>
+        <div className="w-full flex items-center justify-between">
+          <Button
+            variant="contained"
+            sx={{
+              backgroundColor: "black",
+              "&:hover": {
+                backgroundColor: "grey",
+              },
+            }}
+            onClick={() => setIsTaskFormOpen(true)}
+            className="mt-2"
+          >
+            Create Task
+          </Button>
 
+          <Button
+            variant="contained"
+            sx={{
+              backgroundColor: "black",
+              "&:hover": {
+                backgroundColor: "grey",
+              },
+            }}
+            onClick={handleSignOut}
+            className="mt-2"
+          >
+            Sign Out
+          </Button>
+        </div>
         <div
           className="py-4"
           style={{ display: "flex", gap: "1rem", width: "100%" }}
@@ -155,13 +184,11 @@ const Tasks: React.FC = () => {
               )}
             </div>
           </div>
-
           {/* Custom SearchInput */}
           <SearchInput
             searchQuery={keyword}
             onSearchChange={handleSearchChange}
           />
-
           <FormControl variant="outlined" fullWidth>
             <InputLabel htmlFor="status-filter-select" sx={{ color: "black" }}>
               Status
@@ -177,7 +204,6 @@ const Tasks: React.FC = () => {
               <MenuItem value="completed">Completed</MenuItem>
             </Select>
           </FormControl>
-
           <FormControl variant="outlined" fullWidth>
             <InputLabel
               htmlFor="priority-filter-select"
