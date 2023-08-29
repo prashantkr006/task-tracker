@@ -10,7 +10,7 @@ import {
 } from "./endpoints"; // Import the endpoint constants
 import { TaskData } from "../utils/types";
 
-const baseURL = process.env.BASE_URL;
+const baseURL = "https://task-tracker-seerver.onrender.com";
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL,
